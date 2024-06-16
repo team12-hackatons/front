@@ -5,35 +5,39 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
 import BottomBar from './components/BottomBar';
+import axios from 'axios';
 
 const App = () => {
   const [date, setDate] = useState(new Date('2020-03-03'));
-  const [objects, setObjects] = useState([
-    {
-      id: 1,
-      name: 'Test Ship 1',
-      startTime: new Date('2020-03-01T00:00:00'),
-      endTime: new Date('2020-03-05T00:00:00'),
-      currentPoint: null,
-      startPoint: [69, 69],
-      endPoint: [78, 78],
-      iceType: "Arc7",
-      path: null
-    },
-    {
-      id: 2,
-      name: 'Test Ship 2',
-      startTime: new Date('2020-03-02T00:00:00'),
-      endTime: new Date('2020-03-06T00:00:00'),
-      currentPoint: null,
-      startPoint: [32, 32],
-      endPoint: [52, 52],
-      iceType: "Arc7",
-      path: null
-    }
-  ]);
+  const [objects, setObjects] = useState();
   const [selectedObject, setSelectedObject] = useState(null);
   const mapRef = useRef();
+
+  useEffect(() => {
+    const fetchShips = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/api/ships');
+        const ships = Object.values(response.data).map((ship, index) => ({
+          id: index,
+          name: ship.movement_type,
+          startTime: new Date(ship.departure_date),
+          endTime: new Date(ship.arrival_date),
+          currentPoint: null, // Изначально текущая точка неизвестна
+          startPoint: null, // Точки старта и окончания также неизвестны в данном контексте
+          endPoint: null,
+          path: [] 
+        }));
+        setObjects(ships);
+      } catch (error) {
+        console.error('Error fetching ships data:', error);
+      }
+    };
+
+    fetchShips(); 
+
+
+  }, []); // Пустой массив зависимостей указывает, что эффект выполняется только один раз при монтировании компонента
+
 
   const handleDateChange = (direction) => {
     setDate((prevDate) => {
@@ -43,25 +47,50 @@ const App = () => {
     });
   };
 
-  const handleListItemClick = (object) => {
-    setSelectedObject(object);
-    if (object.endTime) {
-      const selectedTime = new Date(object.startTime);
-      if (date < object.startTime || date > object.endTime) {
-        setDate(selectedTime);
-      }
+  const handleListItemClick = async (object) => {
+    
+    try {
+      const response = await axios.get(`http://127.0.0.1:5000/api/ship/${object.id.toString()}`);
+      console.log(response.data)
+      const outputArray = response.data.path.map(item => ({
+        current_time: item[2], // Берем третий элемент подмассива как current_time
+        lat: item[0],          // Берем первый элемент подмассива как lat
+        lon: item[1]           // Берем второй элемент подмассива как lon
+      }));
+      const ship = {
+        id: object.id.toString(),
+        name: response.data.movement_type,
+        startTime: new Date(response.data.departure_date),
+        endTime: new Date(response.data.arrival_date),
+        currentPoint: null, // Изначально текущая точка неизвестна
+        startPoint: [response.data.path[0][0], response.data.path[0][1]], // Точки старта и окончания также неизвестны в данном контексте
+        endPoint: [response.data.path[response.data.path.length - 1][0], response.data.path[response.data.path.length - 1][1]],
+        path: outputArray
+      };
+      console.log(ship)
+      setSelectedObject(ship);
+      // setSelectedObject(response.data);
+    } catch (error) {
+      setSelectedObject(object);
+      console.log(object)
     }
-    else{
-      const selectedTime = new Date(object.startTime);
-      if (date < object.startTime) {
-        setDate(selectedTime);
-      }
-    }
-    // const currentPoint = getCurrentPoint(object.path, date);
-    // if (currentPoint) {
-    //   mapRef.current.setView(new LatLng(currentPoint[0], currentPoint[1]), 13);
+    // if (object.endTime) {
+    //   const selectedTime = new Date(object.startTime);
+    //   if (date < object.startTime || date > object.endTime) {
+    //     setDate(selectedTime);
+    //   }
     // }
-    mapRef.current.setView(object.currentPoint ? new LatLng(object.currentPoint[0], object.currentPoint[1]) : new LatLng(object.startPoint[0], object.startPoint[1]), 11);
+    // else{
+    //   const selectedTime = new Date(object.startTime);
+    //   if (date < object.startTime) {
+    //     setDate(selectedTime);
+    //   }
+    // }
+    // // const currentPoint = getCurrentPoint(object.path, date);
+    // // if (currentPoint) {
+    // //   mapRef.current.setView(new LatLng(currentPoint[0], currentPoint[1]), 13);
+    // // }
+    // mapRef.current.setView(object.currentPoint ? new LatLng(object.currentPoint[0], object.currentPoint[1]) : new LatLng(object.startPoint[0], object.startPoint[1]), 11);
     
   };
 

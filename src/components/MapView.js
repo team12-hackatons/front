@@ -36,7 +36,7 @@ const MapView = React.forwardRef(({ objects }, mapRef) => {
           </Marker>
           {objects.path &&
                 <>
-                {/* {console.log(objects.path)} */}
+                {console.log(objects.path)}
                 <Polyline positions={objects.path.map(point => [point.lat, point.lon])} color="blue" />
                 </>}
           </React.Fragment>
