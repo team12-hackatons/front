@@ -1,0 +1,6 @@
+.leaflet-ship-icon {
+    background: none !important; /* Убираем белый фон */
+    border: none !important; /* Убираем черные края */
+    box-shadow: none !important; /* Убираем тени */
+  }
+  
